@@ -25,109 +25,12 @@
 
     .header-row {
       display: flex;
-      align-items: center;
+      align-items: baseline;
       gap: 12px;
       padding: 14px 24px 10px;
     }
     .header-row h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; }
-    .header-row p  { font-size: 0.75rem; color: #aeaeb2; flex: 1; }
-
-    .gear-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 1.1rem;
-      color: #aeaeb2;
-      padding: 4px;
-      line-height: 1;
-      transition: color 0.15s;
-      flex-shrink: 0;
-    }
-    .gear-btn:hover { color: #1d1d1f; }
-
-    /* ── API Key Modal ── */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.45);
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-    .modal-overlay.hidden { display: none; }
-
-    .modal-box {
-      background: #fff;
-      border-radius: 16px;
-      padding: 32px 28px;
-      width: 100%;
-      max-width: 400px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-    }
-    .modal-box h2 {
-      font-size: 1rem;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-    .modal-box p {
-      font-size: 0.78rem;
-      color: #6e6e73;
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-    .modal-box input {
-      width: 100%;
-      padding: 10px 14px;
-      border: 1.5px solid #e5e5ea;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-family: monospace;
-      outline: none;
-      margin-bottom: 14px;
-      transition: border-color 0.15s;
-    }
-    .modal-box input:focus { border-color: #1a73e8; }
-    .modal-box .modal-actions {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-    .btn-primary {
-      background: #1a73e8;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 9px 20px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .btn-primary:hover { background: #1557b0; }
-    .btn-secondary {
-      background: none;
-      color: #6e6e73;
-      border: 1.5px solid #e5e5ea;
-      border-radius: 8px;
-      padding: 9px 16px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .btn-secondary:hover { border-color: #aeaeb2; }
-
-    .api-status {
-      font-size: 0.68rem;
-      color: #aeaeb2;
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .api-status.ok  { color: #16a34a; }
-    .api-status.missing { color: #dc2626; }
+    .header-row p  { font-size: 0.75rem; color: #aeaeb2; }
 
     /* ── Tab nav ── */
     .tab-nav {
@@ -157,8 +60,8 @@
     .tab-btn:hover:not(.active) { color: #6e6e73; }
 
     /* ── Tab panels ── */
-    .tab-panel         { display: none; }
-    .tab-panel.active  { display: block; }
+    .tab-panel        { display: none; }
+    .tab-panel.active { display: block; }
 
     /* ── Main content area ── */
     main {
@@ -166,16 +69,6 @@
       margin: 0 auto;
       padding: 24px 16px 48px;
     }
-    .panel-placeholder {
-      background: #fff;
-      border-radius: 12px;
-      padding: 48px 24px;
-      text-align: center;
-      color: #aeaeb2;
-      font-size: 0.9rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    }
-    .panel-placeholder strong { display: block; font-size: 1rem; color: #6e6e73; margin-bottom: 6px; }
 
     /* ── Count label ── */
     .count-label {
@@ -248,11 +141,11 @@
     .card-desc {
       font-size: 0.78rem;
       color: #6e6e73;
-      line-height: 1.5;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      line-height: 1.6;
+    }
+    .card-desc.loading {
+      color: #aeaeb2;
+      font-style: italic;
     }
 
     /* ── Skeleton ── */
@@ -277,8 +170,6 @@
   <div class="header-row">
     <h1>微出行情報站</h1>
     <p>中國電動微出行 · 即時資訊</p>
-    <span class="api-status" id="api-status">⚠ 未設定 API Key</span>
-    <button class="gear-btn" id="gear-btn" title="設定 API Key">⚙️</button>
   </div>
   <nav class="tab-nav">
     <button class="tab-btn active" data-tab="brand">品牌動態</button>
@@ -287,19 +178,6 @@
     <button class="tab-btn"        data-tab="robot">配送機器人</button>
     <button class="tab-btn"        data-tab="sharing">共享出行</button>
   </nav>
-</div>
-
-<!-- ── API Key Modal ── -->
-<div class="modal-overlay hidden" id="modal-overlay">
-  <div class="modal-box">
-    <h2>設定 Claude API Key</h2>
-    <p>Key 只存在你的瀏覽器 localStorage 中，不會傳送到任何伺服器以外的地方。</p>
-    <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." />
-    <div class="modal-actions">
-      <button class="btn-secondary" id="modal-cancel">取消</button>
-      <button class="btn-primary"   id="modal-save">儲存</button>
-    </div>
-  </div>
 </div>
 
 <div class="tab-panel active" id="panel-brand">
@@ -338,87 +216,38 @@
 </div>
 
 <script>
+  // ── ✏️ 在這裡填入你的 Claude API Key ─────────────────────────
+  const CLAUDE_API_KEY = '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';
+  // ─────────────────────────────────────────────────────────────
+
   // ── Feed config ───────────────────────────────────────────────
   const FEEDS = {
     brand: {
-      label:      '品牌動態',
-      color:      '#1a73e8',
-      colorLight: '#dbeafe',
-      query:      '雅迪 OR 爱玛 OR 绿源 OR 台铃 OR 新日 OR 小牛 OR 九号 OR 春风动力 OR 豪爵 OR 速珂',
+      label: '品牌動態',
+      color: '#1a73e8',
+      query: '雅迪 OR 爱玛 OR 绿源 OR 台铃 OR 新日 OR 小牛 OR 九号 OR 春风动力 OR 豪爵 OR 速珂',
     },
     industry: {
-      label:      '行業＆政策',
-      color:      '#4338ca',
-      colorLight: '#e0e7ff',
-      query:      '两轮电动 行业 OR 市场 OR 政策 OR 标准 OR 法规',
+      label: '行業＆政策',
+      color: '#4338ca',
+      query: '两轮电动 行业 OR 市场 OR 政策 OR 标准 OR 法规',
     },
     charging: {
-      label:      '充電設施',
-      color:      '#0891b2',
-      colorLight: '#cffafe',
-      query:      '电动车 换电站 OR 充电桩 OR 换电标准 OR 充电基础设施',
+      label: '充電設施',
+      color: '#0891b2',
+      query: '电动车 换电站 OR 充电桩 OR 换电标准 OR 充电基础设施',
     },
     robot: {
-      label:      '配送機器人',
-      color:      '#92400e',
-      colorLight: '#fef3c7',
-      query:      '配送机器人 OR 无人配送 OR 末端配送 OR 送货机器人',
+      label: '配送機器人',
+      color: '#92400e',
+      query: '配送机器人 OR 无人配送 OR 末端配送 OR 送货机器人',
     },
     sharing: {
-      label:      '共享出行',
-      color:      '#15803d',
-      colorLight: '#dcfce7',
-      query:      '哈啰 OR 美团单车 OR 滴滴青桔 OR 共享单车 OR 共享电单车',
+      label: '共享出行',
+      color: '#15803d',
+      query: '哈啰 OR 美团单车 OR 滴滴青桔 OR 共享单车 OR 共享电单车',
     },
   };
-
-  // ── API Key management ────────────────────────────────────────
-  const API_KEY_STORAGE = 'claude_api_key';
-
-  function getApiKey() {
-    return localStorage.getItem(API_KEY_STORAGE) || '';
-  }
-
-  function updateApiStatus() {
-    const statusEl = document.getElementById('api-status');
-    if (getApiKey()) {
-      statusEl.textContent = '✓ API Key 已設定';
-      statusEl.className = 'api-status ok';
-    } else {
-      statusEl.textContent = '⚠ 未設定 API Key';
-      statusEl.className = 'api-status missing';
-    }
-  }
-
-  function openModal() {
-    const overlay = document.getElementById('modal-overlay');
-    const input   = document.getElementById('api-key-input');
-    input.value   = getApiKey();
-    overlay.classList.remove('hidden');
-    input.focus();
-  }
-
-  function closeModal() {
-    document.getElementById('modal-overlay').classList.add('hidden');
-  }
-
-  document.getElementById('gear-btn').addEventListener('click', openModal);
-  document.getElementById('modal-cancel').addEventListener('click', closeModal);
-  document.getElementById('modal-overlay').addEventListener('click', e => {
-    if (e.target === e.currentTarget) closeModal();
-  });
-  document.getElementById('modal-save').addEventListener('click', () => {
-    const key = document.getElementById('api-key-input').value.trim();
-    if (key) {
-      localStorage.setItem(API_KEY_STORAGE, key);
-      updateApiStatus();
-      closeModal();
-    }
-  });
-
-  // 首次開啟若無 key，自動彈出
-  if (!getApiKey()) openModal();
-  updateApiStatus();
 
   // ── Helpers ───────────────────────────────────────────────────
   function googleNewsURL(query) {
@@ -437,17 +266,12 @@
   }
 
   function parseItems(items, feedKey) {
-    const cfg = FEEDS[feedKey];
     return items.map(item => {
       const rawTitle = item.title?.trim() || '（無標題）';
       const srcMatch = rawTitle.match(/ - ([^-]+)$/);
       const source   = srcMatch ? srcMatch[1].trim() : '';
       const title    = srcMatch ? rawTitle.slice(0, -srcMatch[0].length).trim() : rawTitle;
-      const desc     = (item.description || '')
-        .replace(/<[^>]+>/g, '')
-        .replace(source ? new RegExp(` - ${source.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}$`) : /$/,'')
-        .trim();
-      return { feedKey, source, title, desc, url: item.link || '#', date: item.pubDate || '' };
+      return { feedKey, source, title, url: item.link || '#', date: item.pubDate || '' };
     });
   }
 
@@ -466,31 +290,31 @@
   function renderCards(articles, feedKey) {
     if (!articles.length) return '<p style="text-align:center;padding:48px;color:#aeaeb2">沒有找到文章</p>';
     const cfg = FEEDS[feedKey];
-    return articles.map(a => `
-      <a class="card" href="${a.url}" target="_blank" rel="noopener">
+    return articles.map((a, i) => `
+      <a class="card" href="${a.url}" target="_blank" rel="noopener" data-idx="${i}" data-feed="${feedKey}">
         <div class="card-header" style="background:${cfg.color}">
           <span class="card-source">${a.source || cfg.label}</span>
           <span class="card-date">${formatDate(a.date)}</span>
         </div>
         <div class="card-body">
           <div class="card-title">${a.title}</div>
-          ${a.desc ? `<div class="card-desc">${a.desc}</div>` : ''}
+          <div class="card-desc loading" id="desc-${feedKey}-${i}">摘要生成中…</div>
         </div>
       </a>`).join('');
   }
 
+  // ── RSS Feed loading ──────────────────────────────────────────
   async function loadFeed(feedKey) {
-    const cfg      = FEEDS[feedKey];
-    const cards    = document.getElementById(`cards-${feedKey}`);
-    const countEl  = document.getElementById(`count-${feedKey}`);
+    const cfg     = FEEDS[feedKey];
+    const cards   = document.getElementById(`cards-${feedKey}`);
+    const countEl = document.getElementById(`count-${feedKey}`);
     if (!cards) return;
 
     cards.innerHTML = skeletons();
 
     try {
-      const rssURL = googleNewsURL(cfg.query);
-      const res    = await fetch(proxyURL(rssURL));
-      const json   = await res.json();
+      const res  = await fetch(proxyURL(googleNewsURL(cfg.query)));
+      const json = await res.json();
       if (json.status !== 'ok') throw new Error(json.message || 'Feed error');
 
       const articles = parseItems(json.items, feedKey)
@@ -498,6 +322,10 @@
 
       if (countEl) countEl.textContent = `共 ${articles.length} 篇`;
       cards.innerHTML = renderCards(articles, feedKey);
+
+      // 背景逐張生成摘要
+      summarizeAll(articles, feedKey);
+
     } catch (err) {
       cards.innerHTML = `<div class="error-box">⚠️ 載入失敗：${err.message}</div>`;
       if (countEl) countEl.textContent = '';
@@ -505,8 +333,92 @@
     }
   }
 
+  // ── Claude summarization ──────────────────────────────────────
+  async function fetchArticleText(url, title, source) {
+    const params = new URLSearchParams({ url });
+    if (title)  params.set('title', title);
+    if (source) params.set('source', source);
+    const worker = `https://emobility-fetcher.pichia47.workers.dev?${params}`;
+    const res    = await fetch(worker, { signal: AbortSignal.timeout(20000) });
+    const json   = await res.json();
+    if (json.error || !json.text) throw new Error(json.error || 'empty');
+    return json.text;
+  }
+
+  async function summarizeArticle(title, text) {
+    const prompt = `以下是一篇文章的標題與內文，請用繁體中文寫出 5 行重點摘要，每行一個要點，不要加編號、不要加標題、不要用 markdown：\n\n標題：${title}\n\n內文：${text}`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': CLAUDE_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    const json = await res.json();
+    return json.content?.[0]?.text?.trim() || null;
+  }
+
+  // 從標題提取 2~6 字的中文詞，檢查正文是否至少含其中一個
+  function articleMatchesTitle(text, title) {
+    // Extract meaningful Chinese segments (2–6 chars) from title
+    const segments = title.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]{2,6}/g) || [];
+    // Need at least 1 of the top 5 distinct segments to appear in text
+    const keywords = [...new Set(segments)].slice(0, 8);
+    return keywords.some(kw => text.includes(kw));
+  }
+
+  async function summarizeOne(article, feedKey, idx) {
+    const descEl = document.getElementById(`desc-${feedKey}-${idx}`);
+    if (!descEl) return;
+
+    try {
+      let text = '';
+      try {
+        text = await fetchArticleText(article.url, article.title, article.source);
+      } catch {
+        // allorigins 失敗
+      }
+
+      if (!text || text.length < 100) {
+        descEl.textContent = '無法取得全文';
+        descEl.classList.remove('loading');
+        return;
+      }
+
+      // 驗證：抓到的文章必須包含標題中至少一個關鍵詞，否則視為抓錯文章
+      if (!articleMatchesTitle(text, article.title)) {
+        descEl.textContent = '無法取得全文';
+        descEl.classList.remove('loading');
+        return;
+      }
+
+      const summary = await summarizeArticle(article.title, text);
+      descEl.textContent = summary || '無法取得全文';
+      descEl.classList.remove('loading');
+
+    } catch (err) {
+      descEl.textContent = '無法取得全文';
+      descEl.classList.remove('loading');
+    }
+  }
+
+  async function summarizeAll(articles, feedKey) {
+    // 逐張順序處理，避免 DuckDuckGo 被限速
+    for (let i = 0; i < articles.length; i++) {
+      await summarizeOne(articles[i], feedKey, i);
+    }
+  }
+
   // ── Tab switching ─────────────────────────────────────────────
-  // (overwrite the earlier basic version)
   const loaded = new Set();
 
   function switchTab(tab) {
@@ -523,7 +435,7 @@
   document.querySelectorAll('.tab-btn').forEach(btn =>
     btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
 
-  // ── Boot: load first tab ──────────────────────────────────────
+  // ── Boot ─────────────────────────────────────────────────────
   loaded.add('brand');
   loadFeed('brand');
 </script>
