@@ -216,7 +216,6 @@
 </div>
 
 <script>
-  const CLAUDE_API_KEY = atob('c2stYW50LWFwaTAzLXdSUXQyZXRBZjdRQmJ6b1hJdkwzS0hobTRFSjVPeGphSWxIQlc1cHNyRXBxRFlweE9xR2pESHYwZXU0QWZUZEVqYkVqS2NDMVdTZ0JXS213cWh0UkVRLXVqQnVzZ0FB');
 
   // ── Feed config ───────────────────────────────────────────────
   const FEEDS = {
@@ -269,7 +268,8 @@
       const srcMatch = rawTitle.match(/ - ([^-]+)$/);
       const source   = srcMatch ? srcMatch[1].trim() : '';
       const title    = srcMatch ? rawTitle.slice(0, -srcMatch[0].length).trim() : rawTitle;
-      return { feedKey, source, title, url: item.link || '#', date: item.pubDate || '' };
+      const description = (item.description || '').replace(/<[^>]+>/g, '').trim();
+      return { feedKey, source, title, url: item.link || '#', date: item.pubDate || '', description };
     });
   }
 
@@ -296,7 +296,6 @@
         </div>
         <div class="card-body">
           <div class="card-title">${a.title}</div>
-          <div class="card-desc loading" id="desc-${feedKey}-${i}">摘要生成中…</div>
         </div>
       </a>`).join('');
   }
@@ -321,8 +320,6 @@
       if (countEl) countEl.textContent = `共 ${articles.length} 篇`;
       cards.innerHTML = renderCards(articles, feedKey);
 
-      // 背景逐張生成摘要
-      summarizeAll(articles, feedKey);
 
     } catch (err) {
       cards.innerHTML = `<div class="error-box">⚠️ 載入失敗：${err.message}</div>`;
@@ -344,7 +341,7 @@
   }
 
   async function summarizeArticle(title, text) {
-    const prompt = `以下是一篇文章的標題與內文，請用繁體中文寫出 5 行重點摘要，每行一個要點，不要加編號、不要加標題、不要用 markdown：\n\n標題：${title}\n\n內文：${text}`;
+    const prompt = `以下是一篇文章的標題與內文，請用繁體中文寫出重點摘要，每行一個要點，最多5行，內容不足時可以少於5行，不要加編號、不要加標題、不要用 markdown：\n\n標題：${title}\n\n內文：${text}`;
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -367,10 +364,12 @@
 
   // 從標題提取 2~6 字的中文詞，檢查正文是否至少含其中一個
   function articleMatchesTitle(text, title) {
-    // Extract meaningful Chinese segments (2–6 chars) from title
-    const segments = title.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]{2,6}/g) || [];
-    // Need at least 1 of the top 5 distinct segments to appear in text
-    const keywords = [...new Set(segments)].slice(0, 8);
+    // Extract all Chinese characters, then build 2-char bigrams
+    // Bigrams are more likely to appear verbatim in article text than 6-char chunks
+    const chars = title.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g) || [];
+    const bigrams = [];
+    for (let i = 0; i < chars.length - 1; i++) bigrams.push(chars[i] + chars[i + 1]);
+    const keywords = [...new Set(bigrams)].slice(0, 12);
     return keywords.some(kw => text.includes(kw));
   }
 
@@ -382,11 +381,13 @@
       let text = '';
       try {
         text = await fetchArticleText(article.url, article.title, article.source);
-      } catch {
-        // allorigins 失敗
+        console.log(`[${idx}] fetchOK textLen=${text.length} url=${article.url.slice(0,60)}`);
+      } catch (fetchErr) {
+        console.warn(`[${idx}] fetchFAIL: ${fetchErr.message} url=${article.url.slice(0,60)}`);
       }
 
       if (!text || text.length < 100) {
+        console.warn(`[${idx}] SKIP: text too short (${text.length})`);
         descEl.textContent = '無法取得全文';
         descEl.classList.remove('loading');
         return;
@@ -394,25 +395,64 @@
 
       // 驗證：抓到的文章必須包含標題中至少一個關鍵詞，否則視為抓錯文章
       if (!articleMatchesTitle(text, article.title)) {
+        console.warn(`[${idx}] SKIP: keyword mismatch. title="${article.title.slice(0,30)}" text="${text.slice(0,60)}"`);
         descEl.textContent = '無法取得全文';
         descEl.classList.remove('loading');
         return;
       }
 
       const summary = await summarizeArticle(article.title, text);
+      console.log(`[${idx}] summaryOK`);
       descEl.textContent = summary || '無法取得全文';
       descEl.classList.remove('loading');
 
     } catch (err) {
+      console.error(`[${idx}] exception: ${err.message}`);
       descEl.textContent = '無法取得全文';
       descEl.classList.remove('loading');
     }
   }
 
   async function summarizeAll(articles, feedKey) {
-    // 逐張順序處理，避免 DuckDuckGo 被限速
+    // Batch fetch all article texts in one Worker call
+    let texts = [];
+    try {
+      const res = await fetch('https://emobility-fetcher.pichia47.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(articles.map(a => ({ url: a.url, title: a.title, source: a.source }))),
+        signal: AbortSignal.timeout(60000),
+      });
+      texts = await res.json();
+    } catch (err) {
+      console.warn('batch fetch failed:', err.message);
+    }
+
+    // Summarize sequentially using fetched texts
     for (let i = 0; i < articles.length; i++) {
-      await summarizeOne(articles[i], feedKey, i);
+      const result = texts[i] || {};
+      await summarizeWithText(articles[i], feedKey, i, result.text || '');
+    }
+  }
+
+  async function summarizeWithText(article, feedKey, idx, text) {
+    const descEl = document.getElementById(`desc-${feedKey}-${idx}`);
+    if (!descEl) return;
+    try {
+      if (text && text.length >= 100 && articleMatchesTitle(text, article.title)) {
+        // Full article text available — summarize with Claude
+        const summary = await summarizeArticle(article.title, text);
+        descEl.textContent = summary || '無法取得全文';
+      } else if (article.description && article.description.length >= 20) {
+        // Fall back to RSS description — show directly, no Claude
+        descEl.textContent = article.description;
+      } else {
+        descEl.textContent = '無法取得全文';
+      }
+      descEl.classList.remove('loading');
+    } catch (err) {
+      descEl.textContent = '無法取得全文';
+      descEl.classList.remove('loading');
     }
   }
 
