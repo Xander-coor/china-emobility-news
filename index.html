@@ -377,16 +377,13 @@
     cards.innerHTML = skeletons();
 
     try {
-      // 試驗：brand 用 36氪 RSS，其他用 Google News
-      const rssURL = feedKey === 'brand'
-        ? proxyURL(get36krURL())
-        : proxyURL(googleNewsURL(cfg.query));
+      const rssURL = proxyURL(googleNewsURL(cfg.query));
 
       const res  = await fetch(rssURL);
       const json = await res.json();
       if (json.status !== 'ok') throw new Error(json.message || 'Feed error');
 
-      let articles = parseItems(json.items, feedKey)
+      const articles = parseItems(json.items, feedKey)
         .filter(a => !isBlacklisted(a.source))
         .sort((a, b) => {
           const tierDiff = getSourceTier(a.source) - getSourceTier(b.source);
@@ -394,22 +391,8 @@
           return new Date(b.date) - new Date(a.date);
         });
 
-      // 36氪 RSS 過濾：只顯示包含品牌名的文章
-      if (feedKey === 'brand') {
-        const brandNames = ['雅迪', '爱玛', '绿源', '台铃', '新日', '小牛', '九号', '春风', '豪爵', '速珂'];
-        articles = articles.filter(a =>
-          brandNames.some(brand => a.title.includes(brand) || a.description.includes(brand))
-        );
-      }
-
       if (countEl) countEl.textContent = `共 ${articles.length} 篇`;
       cards.innerHTML = renderCards(articles, feedKey);
-
-      // 批量獲取摘要 (Google News URLs)
-      const gnewsArticles = articles.filter(a => a.url.includes('news.google.com'));
-      if (gnewsArticles.length > 0) {
-        fetchSnippets(gnewsArticles, feedKey);
-      }
 
     } catch (err) {
       cards.innerHTML = `<div class="error-box">⚠️ 載入失敗：${err.message}</div>`;
