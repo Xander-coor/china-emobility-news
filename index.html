@@ -71,6 +71,33 @@
       padding: 24px 16px 48px;
     }
 
+    /* ── Weekly summary ── */
+    .week-summary {
+      background: #fff;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+      border-left: 4px solid #1a73e8;
+    }
+    .week-summary-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #1a73e8;
+      margin-bottom: 6px;
+    }
+    .week-summary-text {
+      font-size: 0.88rem;
+      line-height: 1.7;
+      color: #1d1d1f;
+    }
+    .week-summary-text.loading {
+      color: #aeaeb2;
+      font-style: italic;
+    }
+
     /* ── Time filter ── */
     .time-filter {
       display: flex; gap: 6px; margin-bottom: 14px;
@@ -380,6 +407,26 @@
     }).join('');
   }
 
+  // ── 本週摘要 ──────────────────────────────────────────────────
+  async function loadSummary(feedKey) {
+    const el = document.getElementById(`summary-${feedKey}`);
+    if (!el) return;
+    try {
+      const cfg = FEEDS[feedKey];
+      const url = `${WORKER}/summary?label=${encodeURIComponent(cfg.label)}&q=${encodeURIComponent(cfg.query)}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+      const data = await res.json();
+      if (data.summary) {
+        el.textContent = data.summary;
+        el.classList.remove('loading');
+      } else {
+        el.closest('.week-summary').style.display = 'none';
+      }
+    } catch {
+      el.closest('.week-summary').style.display = 'none';
+    }
+  }
+
   // ── 收藏頁渲染 ────────────────────────────────────────────────
   function renderStarred() {
     const cards = document.getElementById('cards-starred');
@@ -421,8 +468,19 @@
     range = range || feedTimeFilter[feedKey] || 'all';
     feedTimeFilter[feedKey] = range;
 
-    // 加入時間篩選按鈕（只建一次）
+    // 加入本週摘要區塊（只建一次）
     const panel = document.getElementById(`panel-${feedKey}`);
+    if (panel && !panel.querySelector('.week-summary')) {
+      const ws = document.createElement('div');
+      ws.className = 'week-summary';
+      ws.innerHTML = `
+        <div class="week-summary-label">本週焦點</div>
+        <div class="week-summary-text loading" id="summary-${feedKey}">摘要生成中…</div>`;
+      panel.querySelector('main').prepend(ws);
+      loadSummary(feedKey);
+    }
+
+    // 加入時間篩選按鈕（只建一次）
     if (panel && !panel.querySelector('.time-filter')) {
       const tf = document.createElement('div');
       tf.className = 'time-filter';

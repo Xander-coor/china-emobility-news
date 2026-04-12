@@ -37,6 +37,52 @@ export default {
       }
     }
 
+    // ── GET /summary?label=...&q=... ───────────────────────────────
+    if (pathname === '/summary') {
+      const label = searchParams.get('label') || '';
+      const q     = searchParams.get('q') || '';
+      if (!q) return json({ error: 'Missing q' }, 400);
+      try {
+        const cacheKey = `summary:${q}`;
+        const cached = await env.NEWS_CACHE?.get(cacheKey);
+        if (cached) return json({ summary: cached });
+
+        // 抓本週文章
+        const articles = await searchSerper(q, 20, 'qdr:w', env);
+        if (!articles.length) return json({ summary: null });
+
+        // 組 prompt
+        const items = articles.slice(0, 15).map((a, i) =>
+          `${i + 1}. ${a.title}${a.snippet ? '：' + a.snippet : ''}`
+        ).join('\n');
+
+        const prompt = `以下是「${label}」分類本週的新聞標題與摘要：\n\n${items}\n\n請用繁體中文寫出本週焦點摘要，3到5句話，重點說明本週最重要的趨勢或事件，不要條列、不要標題、直接寫段落。`;
+
+        const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': env.CLAUDE_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 300,
+            messages: [{ role: 'user', content: prompt }],
+          }),
+        });
+
+        const claudeData = await claudeRes.json();
+        const summary = claudeData.content?.[0]?.text?.trim() || null;
+        if (summary) {
+          await env.NEWS_CACHE?.put(cacheKey, summary, { expirationTtl: 43200 }); // 12小時
+        }
+        return json({ summary });
+      } catch (err) {
+        return json({ error: err.message }, 500);
+      }
+    }
+
     // ── GET /credits ───────────────────────────────────────────────
     if (pathname === '/credits') {
       const pw = request.headers.get('X-Admin-Password');

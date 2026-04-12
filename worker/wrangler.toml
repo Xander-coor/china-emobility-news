@@ -4,6 +4,7 @@ compatibility_date = "2024-01-01"
 
 [env.production]
 vars = { SERPER_KEY = "9ce18c03aabe54e3cdc1292dd0ca987fd6daa4df", ADMIN_PASSWORD = "!Aihcipol74" }
+# CLAUDE_KEY 透過 Cloudflare Dashboard 設定，不寫在此檔案
 
 [[env.production.kv_namespaces]]
 binding = "NEWS_CACHE"
