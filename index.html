@@ -336,7 +336,7 @@
 
   async function fetchSnippets(articles, feedKey) {
     try {
-      const res = await fetch('https://emobility-fetcher.pichia47.workers.dev', {
+      const res = await fetch('https://emobility-fetcher-production.pichia47.workers.dev', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(articles.map(a => ({ url: a.url, title: a.title, source: a.source }))),
@@ -375,7 +375,7 @@
     const params = new URLSearchParams({ url });
     if (title)  params.set('title', title);
     if (source) params.set('source', source);
-    const worker = `https://emobility-fetcher.pichia47.workers.dev?${params}`;
+    const worker = `https://emobility-fetcher-production.pichia47.workers.dev?${params}`;
     const res    = await fetch(worker, { signal: AbortSignal.timeout(20000) });
     const json   = await res.json();
     if (json.error || !json.text) throw new Error(json.error || 'empty');
@@ -459,7 +459,7 @@
     // Batch fetch all article texts in one Worker call
     let texts = [];
     try {
-      const res = await fetch('https://emobility-fetcher.pichia47.workers.dev', {
+      const res = await fetch('https://emobility-fetcher-production.pichia47.workers.dev', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(articles.map(a => ({ url: a.url, title: a.title, source: a.source }))),
