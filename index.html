@@ -126,6 +126,13 @@
       white-space: nowrap;
       flex-shrink: 0;
     }
+    .card-tier {
+      font-size: 0.58rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.6);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
     .card-body {
       padding: 13px 15px 16px;
       display: flex;
@@ -217,6 +224,60 @@
 
 <script>
 
+  // ── 媒體梯隊 & 黑名單 ──────────────────────────────────────────
+  const SOURCE_TIER = {
+    // 第一梯隊
+    '人民日报': 1, '人民日報': 1,
+    '新华网': 1, '新華網': 1,
+    '中国新闻网': 1, '中國新聞網': 1, 'chinanews.com.cn': 1,
+    // 第二梯隊
+    '财新': 2, '財新': 2,
+    'Fortune Business Insights': 2,
+    '经济观察网': 2, '經濟觀察網': 2, 'eeo.com.cn': 2,
+    '21财经': 2, '21財經': 2, '21世纪经济报道': 2,
+    // 第三梯隊
+    '汽车之家': 3, '汽車之家': 3,
+    '财联社': 3, '財聯社': 3,
+    '澎湃新闻': 3, '澎湃新聞': 3, 'thepaper.cn': 3,
+    '每日经济新闻': 3, '每日經濟新聞': 3,
+    '国际充电网': 3, '國際充電網': 3,
+    // 第四梯隊
+    '新浪财经': 4, '新浪財經': 4,
+    '东方财富': 4, '東方財富': 4,
+    '上海观察': 4, '上海觀察': 4, 'shobserver.com': 4,
+    '京报网': 4, '京報網': 4,
+    '凤凰科技': 4, '鳳凰科技': 4,
+    // 第五梯隊
+    '搜狐': 5, 'Sohu': 5,
+    '新浪': 5,
+    '中华网': 5, '中華網': 5,
+    'DoNews': 5, 'donews': 5,
+    '新快网': 5, '新快網': 5,
+    '华强网': 5, '華強網': 5,
+    '财富号': 5, '財富號': 5,
+    '湖南红网': 5, '湖南紅網': 5,
+    '首都文明网': 5, '首都文明網': 5,
+    '齐鲁晚报': 5, '齊魯晚報': 5,
+    '京报网': 5,
+    'bihainews.com': 5,
+    'cb.com.cn': 5,
+    'SINA SPORTS': 5,
+  };
+
+  const SOURCE_BLACKLIST = ['聯合報', '联合报', 'Porsche Newsroom', 'udn.com'];
+
+  function getSourceTier(source) {
+    if (!source) return 9;
+    for (const [key, tier] of Object.entries(SOURCE_TIER)) {
+      if (source.includes(key) || key.includes(source)) return tier;
+    }
+    return 6; // 未知媒體排在第五梯隊之後
+  }
+
+  function isBlacklisted(source) {
+    return SOURCE_BLACKLIST.some(b => source && source.includes(b));
+  }
+
   // ── Feed config ───────────────────────────────────────────────
   const FEEDS = {
     brand: {
@@ -296,6 +357,7 @@
       <a class="card" href="${a.url}" target="_blank" rel="noopener" data-idx="${i}" data-feed="${feedKey}">
         <div class="card-header" style="background:${cfg.color}">
           <span class="card-source">${a.source || cfg.label}</span>
+          <span class="card-tier">T${getSourceTier(a.source)}</span>
           <span class="card-date">${formatDate(a.date)}</span>
         </div>
         <div class="card-body">
@@ -325,7 +387,12 @@
       if (json.status !== 'ok') throw new Error(json.message || 'Feed error');
 
       let articles = parseItems(json.items, feedKey)
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
+        .filter(a => !isBlacklisted(a.source))
+        .sort((a, b) => {
+          const tierDiff = getSourceTier(a.source) - getSourceTier(b.source);
+          if (tierDiff !== 0) return tierDiff;
+          return new Date(b.date) - new Date(a.date);
+        });
 
       // 36氪 RSS 過濾：只顯示包含品牌名的文章
       if (feedKey === 'brand') {
