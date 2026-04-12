@@ -145,15 +145,6 @@
       font-weight: 600;
       line-height: 1.45;
     }
-    .card-desc {
-      font-size: 0.78rem;
-      color: #6e6e73;
-      line-height: 1.6;
-    }
-    .card-desc.loading {
-      color: #aeaeb2;
-      font-style: italic;
-    }
 
     /* ── Skeleton ── */
     .skeleton { background: #e5e5ea; border-radius: 6px; animation: pulse 1.4s ease-in-out infinite; }
@@ -362,7 +353,6 @@
         </div>
         <div class="card-body">
           <div class="card-title">${a.title}</div>
-          ${a.description ? `<div class="card-desc">${a.description}</div>` : ''}
         </div>
       </a>`).join('');
   }
@@ -401,169 +391,6 @@
     }
   }
 
-  async function fetchSnippets(articles, feedKey) {
-    try {
-      const res = await fetch('https://emobility-fetcher-production.pichia47.workers.dev', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(articles.map(a => ({ url: a.url, title: a.title, source: a.source }))),
-        signal: AbortSignal.timeout(30000),
-      });
-      const results = await res.json();
-
-      // 更新卡片 descriptions
-      results.forEach((result, idx) => {
-        if (result?.snippet) {
-          const article = articles[idx];
-          const cardIdx = article.feedKey === feedKey ? articles.indexOf(article) : null;
-          if (cardIdx !== null) {
-            const descEl = document.querySelector(`[data-feed="${feedKey}"][data-idx="${cardIdx}"] .card-desc`);
-            if (!descEl) {
-              const card = document.querySelector(`[data-feed="${feedKey}"][data-idx="${cardIdx}"] .card-body`);
-              if (card) {
-                const newDesc = document.createElement('div');
-                newDesc.className = 'card-desc';
-                newDesc.textContent = result.snippet;
-                card.appendChild(newDesc);
-              }
-            } else {
-              descEl.textContent = result.snippet;
-            }
-          }
-        }
-      });
-    } catch (err) {
-      console.warn('fetchSnippets error:', err.message);
-    }
-  }
-
-  // ── Claude summarization ──────────────────────────────────────
-  async function fetchArticleText(url, title, source) {
-    const params = new URLSearchParams({ url });
-    if (title)  params.set('title', title);
-    if (source) params.set('source', source);
-    const worker = `https://emobility-fetcher-production.pichia47.workers.dev?${params}`;
-    const res    = await fetch(worker, { signal: AbortSignal.timeout(20000) });
-    const json   = await res.json();
-    if (json.error || !json.text) throw new Error(json.error || 'empty');
-    return json.text;
-  }
-
-  async function summarizeArticle(title, text) {
-    const prompt = `以下是一篇文章的標題與內文，請用繁體中文寫出重點摘要，每行一個要點，最多5行，內容不足時可以少於5行，不要加編號、不要加標題、不要用 markdown：\n\n標題：${title}\n\n內文：${text}`;
-
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': CLAUDE_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        max_tokens: 300,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
-
-    const json = await res.json();
-    return json.content?.[0]?.text?.trim() || null;
-  }
-
-  // 從標題提取 2~6 字的中文詞，檢查正文是否至少含其中一個
-  function articleMatchesTitle(text, title) {
-    // Extract all Chinese characters, then build 2-char bigrams
-    // Bigrams are more likely to appear verbatim in article text than 6-char chunks
-    const chars = title.match(/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/g) || [];
-    const bigrams = [];
-    for (let i = 0; i < chars.length - 1; i++) bigrams.push(chars[i] + chars[i + 1]);
-    const keywords = [...new Set(bigrams)].slice(0, 12);
-    return keywords.some(kw => text.includes(kw));
-  }
-
-  async function summarizeOne(article, feedKey, idx) {
-    const descEl = document.getElementById(`desc-${feedKey}-${idx}`);
-    if (!descEl) return;
-
-    try {
-      let text = '';
-      try {
-        text = await fetchArticleText(article.url, article.title, article.source);
-        console.log(`[${idx}] fetchOK textLen=${text.length} url=${article.url.slice(0,60)}`);
-      } catch (fetchErr) {
-        console.warn(`[${idx}] fetchFAIL: ${fetchErr.message} url=${article.url.slice(0,60)}`);
-      }
-
-      if (!text || text.length < 100) {
-        console.warn(`[${idx}] SKIP: text too short (${text.length})`);
-        descEl.textContent = '無法取得全文';
-        descEl.classList.remove('loading');
-        return;
-      }
-
-      // 驗證：抓到的文章必須包含標題中至少一個關鍵詞，否則視為抓錯文章
-      if (!articleMatchesTitle(text, article.title)) {
-        console.warn(`[${idx}] SKIP: keyword mismatch. title="${article.title.slice(0,30)}" text="${text.slice(0,60)}"`);
-        descEl.textContent = '無法取得全文';
-        descEl.classList.remove('loading');
-        return;
-      }
-
-      const summary = await summarizeArticle(article.title, text);
-      console.log(`[${idx}] summaryOK`);
-      descEl.textContent = summary || '無法取得全文';
-      descEl.classList.remove('loading');
-
-    } catch (err) {
-      console.error(`[${idx}] exception: ${err.message}`);
-      descEl.textContent = '無法取得全文';
-      descEl.classList.remove('loading');
-    }
-  }
-
-  async function summarizeAll(articles, feedKey) {
-    // Batch fetch all article texts in one Worker call
-    let texts = [];
-    try {
-      const res = await fetch('https://emobility-fetcher-production.pichia47.workers.dev', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(articles.map(a => ({ url: a.url, title: a.title, source: a.source }))),
-        signal: AbortSignal.timeout(60000),
-      });
-      texts = await res.json();
-    } catch (err) {
-      console.warn('batch fetch failed:', err.message);
-    }
-
-    // Summarize sequentially using fetched texts
-    for (let i = 0; i < articles.length; i++) {
-      const result = texts[i] || {};
-      await summarizeWithText(articles[i], feedKey, i, result.text || '');
-    }
-  }
-
-  async function summarizeWithText(article, feedKey, idx, text) {
-    const descEl = document.getElementById(`desc-${feedKey}-${idx}`);
-    if (!descEl) return;
-    try {
-      if (text && text.length >= 100 && articleMatchesTitle(text, article.title)) {
-        // Full article text available — summarize with Claude
-        const summary = await summarizeArticle(article.title, text);
-        descEl.textContent = summary || '無法取得全文';
-      } else if (article.description && article.description.length >= 20) {
-        // Fall back to RSS description — show directly, no Claude
-        descEl.textContent = article.description;
-      } else {
-        descEl.textContent = '無法取得全文';
-      }
-      descEl.classList.remove('loading');
-    } catch (err) {
-      descEl.textContent = '無法取得全文';
-      descEl.classList.remove('loading');
-    }
-  }
 
   // ── Tab switching ─────────────────────────────────────────────
   const loaded = new Set();
