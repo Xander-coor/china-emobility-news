@@ -22,13 +22,14 @@ export default {
     if (pathname === '/news') {
       const q   = searchParams.get('q');
       const num = parseInt(searchParams.get('num') || '10', 10);
+      const tbs = searchParams.get('tbs') || '';
       if (!q) return json({ error: 'Missing q' }, 400);
       try {
-        const cacheKey = `news:${q}:${num}`;
+        const cacheKey = `news:${q}:${num}:${tbs}`;
         const cached = await env.NEWS_CACHE?.get(cacheKey, 'json');
         if (cached) return json(cached);
 
-        const results = await searchSerper(q, num, env);
+        const results = await searchSerper(q, num, tbs, env);
         await env.NEWS_CACHE?.put(cacheKey, JSON.stringify(results), { expirationTtl: 14400 });
         return json(results);
       } catch (err) {
@@ -66,14 +67,17 @@ export default {
   },
 };
 
-async function searchSerper(q, num = 10, env) {
+async function searchSerper(q, num = 10, tbs = '', env) {
   const apiKey = env?.SERPER_KEY;
   if (!apiKey) throw new Error('SERPER_KEY not configured');
+
+  const body = { q, gl: 'cn', hl: 'zh-cn', num };
+  if (tbs) body.tbs = tbs;
 
   const res = await fetch('https://google.serper.dev/news', {
     method: 'POST',
     headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ q, gl: 'cn', hl: 'zh-cn', num }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`Serper error ${res.status}`);
   const data = await res.json();

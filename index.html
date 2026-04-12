@@ -274,46 +274,8 @@
       </div>`).join('');
   }
 
-  // ── 時間解析 ──────────────────────────────────────────────────
-  function parseRelativeDate(str) {
-    if (!str) return null;
-    const now = Date.now();
-    const s = str.trim();
-
-    // 已是標準日期
-    const d = new Date(s);
-    if (!isNaN(d)) return d;
-
-    // 中文相對格式
-    const zhMatch = s.match(/(\d+)\s*(分鐘|小時|天|週|周|月)/);
-    if (zhMatch) {
-      const n = parseInt(zhMatch[1]);
-      const unit = zhMatch[2];
-      const ms = { '分鐘': 60000, '小時': 3600000, '天': 86400000, '週': 604800000, '周': 604800000, '月': 2592000000 }[unit] || 0;
-      return new Date(now - n * ms);
-    }
-
-    // 英文相對格式
-    const enMatch = s.match(/(\d+)\s*(minute|hour|day|week|month)/i);
-    if (enMatch) {
-      const n = parseInt(enMatch[1]);
-      const unit = enMatch[2].toLowerCase();
-      const ms = { minute: 60000, hour: 3600000, day: 86400000, week: 604800000, month: 2592000000 }[unit] || 0;
-      return new Date(now - n * ms);
-    }
-
-    return null;
-  }
-
-  function filterByTime(articles, range) {
-    if (range === 'all') return articles;
-    const now = Date.now();
-    const cutoff = range === 'today' ? now - 86400000 : now - 604800000;
-    return articles.filter(a => {
-      const d = parseRelativeDate(a.date);
-      return d && d.getTime() >= cutoff;
-    });
-  }
+  // tbs 對照表（Google 時間篩選參數）
+  const TBS = { all: '', today: 'qdr:d', week: 'qdr:w' };
 
   // ── 去重 ──────────────────────────────────────────────────────
   function titleBigrams(title) {
@@ -363,72 +325,56 @@
   }
 
   // ── Serper 載入 ───────────────────────────────────────────────
-  const feedArticles = {}; // 快取每個分類的完整文章列表
-  const feedTimeFilter = {}; // 每個分類目前的時間篩選狀態
+  const feedTimeFilter = {};
 
-  function applyFilter(feedKey) {
-    const range = feedTimeFilter[feedKey] || 'all';
-    const all   = feedArticles[feedKey] || [];
-    const filtered = filterByTime(all, range);
-    const countEl  = document.getElementById(`count-${feedKey}`);
-    const cards    = document.getElementById(`cards-${feedKey}`);
-    if (countEl) countEl.textContent = `共 ${filtered.length} 篇`;
-    cards.innerHTML = filtered.length
-      ? renderCards(filtered, feedKey)
-      : '<p style="text-align:center;padding:48px;color:#aeaeb2">此時間範圍內沒有文章</p>';
-
-    // 更新按鈕狀態
-    document.querySelectorAll(`#panel-${feedKey} .tf-btn`).forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.range === range);
-    });
-  }
-
-  async function loadFeed(feedKey) {
+  async function loadFeed(feedKey, range) {
     const cfg     = FEEDS[feedKey];
     const cards   = document.getElementById(`cards-${feedKey}`);
     const countEl = document.getElementById(`count-${feedKey}`);
     if (!cards) return;
 
-    // 加入時間篩選按鈕
+    range = range || feedTimeFilter[feedKey] || 'all';
+    feedTimeFilter[feedKey] = range;
+
+    // 加入時間篩選按鈕（只建一次）
     const panel = document.getElementById(`panel-${feedKey}`);
     if (panel && !panel.querySelector('.time-filter')) {
       const tf = document.createElement('div');
       tf.className = 'time-filter';
       tf.innerHTML = `
-        <button class="tf-btn active" data-range="all"  onclick="setFilter('${feedKey}','all')">全部</button>
-        <button class="tf-btn"        data-range="today" onclick="setFilter('${feedKey}','today')">今天</button>
-        <button class="tf-btn"        data-range="week"  onclick="setFilter('${feedKey}','week')">本週</button>`;
+        <button class="tf-btn" data-range="all"   onclick="loadFeed('${feedKey}','all')">全部</button>
+        <button class="tf-btn" data-range="today"  onclick="loadFeed('${feedKey}','today')">今天</button>
+        <button class="tf-btn" data-range="week"   onclick="loadFeed('${feedKey}','week')">本週</button>`;
       panel.querySelector('main').insertBefore(tf, panel.querySelector('.count-label'));
     }
+    document.querySelectorAll(`#panel-${feedKey} .tf-btn`).forEach(btn =>
+      btn.classList.toggle('active', btn.dataset.range === range));
 
     cards.innerHTML = skeletons();
 
     try {
-      const res = await fetch(
-        `${WORKER}/news?q=${encodeURIComponent(cfg.query)}&num=20`,
-        { signal: AbortSignal.timeout(15000) }
-      );
+      const tbs = TBS[range] || '';
+      const url = `${WORKER}/news?q=${encodeURIComponent(cfg.query)}&num=20${tbs ? '&tbs=' + tbs : ''}`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const items = await res.json();
       if (items.error) throw new Error(items.error);
 
-      feedArticles[feedKey] = dedupe(
+      const articles = dedupe(
         items
           .filter(a => !isBlacklisted(a.source))
           .sort((a, b) => getSourceTier(a.source) - getSourceTier(b.source))
       );
-      feedTimeFilter[feedKey] = feedTimeFilter[feedKey] || 'all';
-      applyFilter(feedKey);
+
+      if (countEl) countEl.textContent = `共 ${articles.length} 篇`;
+      cards.innerHTML = articles.length
+        ? renderCards(articles, feedKey)
+        : '<p style="text-align:center;padding:48px;color:#aeaeb2">此時間範圍內沒有文章</p>';
 
     } catch (err) {
       cards.innerHTML = `<div class="error-box">⚠️ 載入失敗：${err.message}</div>`;
       if (countEl) countEl.textContent = '';
     }
-  }
-
-  function setFilter(feedKey, range) {
-    feedTimeFilter[feedKey] = range;
-    applyFilter(feedKey);
   }
 
 
