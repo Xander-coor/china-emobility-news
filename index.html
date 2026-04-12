@@ -122,6 +122,14 @@
     .card.read .card-title {
       text-decoration: line-through;
     }
+    .star-btn {
+      background: none; border: none; cursor: pointer;
+      font-size: 1rem; line-height: 1; padding: 2px 4px;
+      color: rgba(255,255,255,0.6); flex-shrink: 0;
+      transition: color 0.15s, transform 0.15s;
+    }
+    .star-btn:hover { color: #fbbf24; transform: scale(1.2); }
+    .star-btn.starred { color: #fbbf24; }
     .card-header {
       display: flex;
       align-items: center;
@@ -291,6 +299,33 @@
     localStorage.setItem('readArticles', JSON.stringify([...readSet]));
   }
 
+  // ── 收藏 ──────────────────────────────────────────────────────
+  let starred = JSON.parse(localStorage.getItem('starredArticles') || '[]');
+
+  function isStarred(url) { return starred.some(a => a.url === url); }
+
+  function toggleStar(event, article) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (isStarred(article.url)) {
+      starred = starred.filter(a => a.url !== article.url);
+    } else {
+      starred.unshift(article);
+    }
+    localStorage.setItem('starredArticles', JSON.stringify(starred));
+
+    // 更新所有同 URL 的星號按鈕
+    document.querySelectorAll(`.star-btn[data-url="${CSS.escape(article.url)}"]`).forEach(btn => {
+      btn.classList.toggle('starred', isStarred(article.url));
+      btn.textContent = isStarred(article.url) ? '★' : '☆';
+    });
+
+    // 若目前在收藏頁，重新渲染
+    if (document.getElementById('panel-starred')?.classList.contains('active')) {
+      renderStarred();
+    }
+  }
+
   // ── 去重 ──────────────────────────────────────────────────────
   function titleBigrams(title) {
     const chars = title.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || [];
@@ -324,19 +359,54 @@
   function renderCards(articles, feedKey) {
     if (!articles.length) return '<p style="text-align:center;padding:48px;color:#aeaeb2">沒有找到文章</p>';
     const cfg = FEEDS[feedKey];
-    return articles.map((a, i) => `
+    return articles.map(a => {
+      const safeUrl = a.url.replace(/'/g, "\\'");
+      const articleJson = JSON.stringify(a).replace(/'/g, "\\'");
+      return `
       <a class="card${readSet.has(a.url) ? ' read' : ''}" href="${a.url}" target="_blank" rel="noopener"
-         onclick="markRead('${a.url.replace(/'/g, "\\'")}')">
+         onclick="markRead('${safeUrl}')">
         <div class="card-header" style="background:${cfg.color}">
           <span class="card-source">${a.source || cfg.label}</span>
           <span class="card-tier">T${getSourceTier(a.source)}</span>
           <span class="card-date">${formatDate(a.date)}</span>
+          <button class="star-btn ${isStarred(a.url) ? 'starred' : ''}" data-url="${a.url}"
+            onclick="toggleStar(event, ${articleJson.replace(/"/g, '&quot;')})">${isStarred(a.url) ? '★' : '☆'}</button>
         </div>
         <div class="card-body">
           <div class="card-title">${a.title}</div>
           ${a.snippet ? `<div class="card-snippet">${a.snippet}</div>` : ''}
         </div>
-      </a>`).join('');
+      </a>`;
+    }).join('');
+  }
+
+  // ── 收藏頁渲染 ────────────────────────────────────────────────
+  function renderStarred() {
+    const cards = document.getElementById('cards-starred');
+    const countEl = document.getElementById('count-starred');
+    if (!cards) return;
+    if (!starred.length) {
+      cards.innerHTML = '<p style="text-align:center;padding:48px;color:#aeaeb2">還沒有收藏的文章</p>';
+      if (countEl) countEl.textContent = '';
+      return;
+    }
+    if (countEl) countEl.textContent = `共 ${starred.length} 篇`;
+    cards.innerHTML = starred.map(a => `
+      <div class="card" style="position:relative">
+        <a href="${a.url}" target="_blank" rel="noopener" onclick="markRead('${a.url.replace(/'/g, "\\'")}')"
+           style="text-decoration:none;color:inherit;display:flex;flex-direction:column;flex:1">
+          <div class="card-header" style="background:#374151">
+            <span class="card-source">${a.source || ''}</span>
+            <span class="card-date">${formatDate(a.date)}</span>
+          </div>
+          <div class="card-body">
+            <div class="card-title">${a.title}</div>
+            ${a.snippet ? `<div class="card-snippet">${a.snippet}</div>` : ''}
+          </div>
+        </a>
+        <button onclick="toggleStar(event, ${JSON.stringify(a).replace(/"/g, '&quot;')})"
+          style="position:absolute;top:6px;right:10px;background:none;border:none;cursor:pointer;font-size:1rem;color:#fbbf24">★</button>
+      </div>`).join('');
   }
 
   // ── Serper 載入 ───────────────────────────────────────────────
@@ -401,6 +471,7 @@
       b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.tab-panel').forEach(p =>
       p.classList.toggle('active', p.id === `panel-${tab}`));
+    if (tab === 'starred') return;
     if (!loaded.has(tab)) {
       loaded.add(tab);
       loadFeed(tab);
@@ -418,6 +489,25 @@
     const nav = document.getElementById('tab-nav');
     const panelsContainer = document.getElementById('panels-container');
     const firstKey = Object.keys(FEEDS)[0];
+
+    // 收藏 tab（固定最左）
+    const starBtn = document.createElement('button');
+    starBtn.className = 'tab-btn';
+    starBtn.dataset.tab = 'starred';
+    starBtn.textContent = '★ 收藏';
+    starBtn.addEventListener('click', () => {
+      switchTab('starred');
+      renderStarred();
+    });
+    nav.appendChild(starBtn);
+
+    panelsContainer.innerHTML += `
+      <div class="tab-panel" id="panel-starred">
+        <main>
+          <div class="count-label" id="count-starred"></div>
+          <div class="cards" id="cards-starred"></div>
+        </main>
+      </div>`;
 
     Object.entries(FEEDS).forEach(([key, cfg], i) => {
       // Tab button
