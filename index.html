@@ -116,6 +116,12 @@
       transform: translateY(-2px);
       box-shadow: 0 8px 24px rgba(0,0,0,0.11);
     }
+    .card.read {
+      opacity: 0.45;
+    }
+    .card.read .card-title {
+      text-decoration: line-through;
+    }
     .card-header {
       display: flex;
       align-items: center;
@@ -277,6 +283,14 @@
   // tbs 對照表（Google 時間篩選參數）
   const TBS = { all: '', today: 'qdr:d', week: 'qdr:w' };
 
+  // ── 已讀標記 ──────────────────────────────────────────────────
+  const readSet = new Set(JSON.parse(localStorage.getItem('readArticles') || '[]'));
+
+  function markRead(url) {
+    readSet.add(url);
+    localStorage.setItem('readArticles', JSON.stringify([...readSet]));
+  }
+
   // ── 去重 ──────────────────────────────────────────────────────
   function titleBigrams(title) {
     const chars = title.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || [];
@@ -311,7 +325,8 @@
     if (!articles.length) return '<p style="text-align:center;padding:48px;color:#aeaeb2">沒有找到文章</p>';
     const cfg = FEEDS[feedKey];
     return articles.map((a, i) => `
-      <a class="card" href="${a.url}" target="_blank" rel="noopener">
+      <a class="card${readSet.has(a.url) ? ' read' : ''}" href="${a.url}" target="_blank" rel="noopener"
+         onclick="markRead('${a.url.replace(/'/g, "\\'")}')">
         <div class="card-header" style="background:${cfg.color}">
           <span class="card-source">${a.source || cfg.label}</span>
           <span class="card-tier">T${getSourceTier(a.source)}</span>
