@@ -1,6 +1,8 @@
 const DEFAULT_FEEDS = {
-  brand:    { label: '品牌動態', color: '#1a73e8', query: '雅迪 OR 爱玛 OR 绿源 OR 台铃 OR 新日 OR 小牛 OR 九号 OR 春风动力 OR 豪爵 OR 速珂' },
+  brand:    { label: '品牌動態',   color: '#1a73e8', query: '雅迪 OR 爱玛 OR 绿源 OR 台铃 OR 新日 OR 小牛 OR 九号 OR 春风动力 OR 豪爵 OR 速珂' },
   industry: { label: '行業＆政策', color: '#4338ca', query: '两轮电动 行业 OR 市场 OR 政策 OR 标准 OR 法规' },
+  moto:     { label: '電動摩托車', color: '#7c3aed', query: '电动摩托车 OR 电摩 OR 两轮电动 摩托' },
+  safety:   { label: '安全／事故', color: '#dc2626', query: '电动车 起火 OR 事故 OR 召回 OR 安全隐患 OR 违规' },
   charging: { label: '充電設施',   color: '#0891b2', query: '电动车 换电站 OR 充电桩 OR 换电标准 OR 充电基础设施' },
   robot:    { label: '配送機器人', color: '#92400e', query: '配送机器人 OR 无人配送 OR 末端配送 OR 送货机器人' },
   sharing:  { label: '共享出行',   color: '#15803d', query: '哈啰 OR 美团单车 OR 滴滴青桔 OR 共享单车 OR 共享电单车' },
