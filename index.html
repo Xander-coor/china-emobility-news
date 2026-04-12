@@ -262,6 +262,36 @@
       </div>`).join('');
   }
 
+  // ── 去重 ──────────────────────────────────────────────────────
+  function titleBigrams(title) {
+    const chars = title.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || [];
+    const set = new Set();
+    for (let i = 0; i < chars.length - 1; i++) set.add(chars[i] + chars[i + 1]);
+    return set;
+  }
+
+  function similarity(a, b) {
+    const sa = titleBigrams(a), sb = titleBigrams(b);
+    if (!sa.size || !sb.size) return 0;
+    let common = 0;
+    for (const bg of sa) if (sb.has(bg)) common++;
+    return common / Math.min(sa.size, sb.size);
+  }
+
+  function dedupe(articles) {
+    const kept = [];
+    for (const article of articles) {
+      const dup = kept.find(k => similarity(k.title, article.title) >= 0.6);
+      if (!dup) {
+        kept.push(article);
+      } else if (getSourceTier(article.source) < getSourceTier(dup.source)) {
+        // 新文章梯隊更高，替換
+        kept.splice(kept.indexOf(dup), 1, article);
+      }
+    }
+    return kept;
+  }
+
   function renderCards(articles, feedKey) {
     if (!articles.length) return '<p style="text-align:center;padding:48px;color:#aeaeb2">沒有找到文章</p>';
     const cfg = FEEDS[feedKey];
@@ -297,9 +327,11 @@
       const items = await res.json();
       if (items.error) throw new Error(items.error);
 
-      const articles = items
-        .filter(a => !isBlacklisted(a.source))
-        .sort((a, b) => getSourceTier(a.source) - getSourceTier(b.source));
+      const articles = dedupe(
+        items
+          .filter(a => !isBlacklisted(a.source))
+          .sort((a, b) => getSourceTier(a.source) - getSourceTier(b.source))
+      );
 
       if (countEl) countEl.textContent = `共 ${articles.length} 篇`;
       cards.innerHTML = renderCards(articles, feedKey);
