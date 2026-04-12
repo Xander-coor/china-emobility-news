@@ -37,6 +37,18 @@
 | 配送機器人 | #92400e | 配送机器人 OR 无人配送 OR 末端配送 OR 送货机器人 |
 | 共享出行 | #15803d | 哈啰 OR 美团单车 OR 滴滴青桔 OR 共享单车 OR 共享电单车 |
 
+## 頁面
+
+| 頁面 | 網址 | 說明 |
+|------|------|------|
+| 主頁 | https://xander-coor.github.io/china-emobility-news/ | 新聞瀏覽 |
+| 管理頁 | https://xander-coor.github.io/china-emobility-news/admin.html | 關鍵字管理，密碼：`!Aihcipol74` |
+
+### 管理頁使用方式
+1. 輸入密碼登入
+2. 每個分類下可新增或刪除關鍵字
+3. 按「儲存所有變更」後自動清除 KV 快取，下次載入立即生效
+
 ## 外部服務
 
 | 服務 | 用途 | 管理網址 |
