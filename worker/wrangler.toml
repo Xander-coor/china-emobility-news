@@ -1,0 +1,10 @@
+name = "emobility-fetcher"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[env.production]
+vars = { SERPER_KEY = "9ce18c03aabe54e3cdc1292dd0ca987fd6daa4df", ADMIN_PASSWORD = "!Aihcipol74" }
+
+[[env.production.kv_namespaces]]
+binding = "NEWS_CACHE"
+id = "6786ff5686b940358061dc34e88d081f"
