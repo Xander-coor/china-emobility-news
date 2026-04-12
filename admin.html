@@ -8,70 +8,56 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", sans-serif;
-      background: #f5f5f7;
-      color: #1d1d1f;
-      min-height: 100vh;
-      padding: 32px 16px;
+      background: #f5f5f7; color: #1d1d1f;
+      min-height: 100vh; padding: 32px 16px;
     }
     .wrap { max-width: 640px; margin: 0 auto; }
     h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 24px; }
 
-    /* Login */
     #login { display: flex; flex-direction: column; gap: 12px; max-width: 320px; }
-    #login input {
-      padding: 10px 14px; border: 1px solid #d1d1d6; border-radius: 8px;
-      font-size: 1rem; outline: none;
-    }
+    #login input { padding: 10px 14px; border: 1px solid #d1d1d6; border-radius: 8px; font-size: 1rem; outline: none; }
     #login input:focus { border-color: #1a73e8; }
 
-    /* Buttons */
-    .btn {
-      padding: 9px 18px; border: none; border-radius: 8px;
-      font-size: 0.88rem; font-weight: 600; cursor: pointer;
-      transition: opacity 0.15s;
-    }
+    .btn { padding: 9px 18px; border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
     .btn:hover { opacity: 0.85; }
     .btn-primary { background: #1a73e8; color: #fff; }
     .btn-danger  { background: #ff3b30; color: #fff; font-size: 0.78rem; padding: 6px 12px; }
     .btn-add     { background: #e8f0fe; color: #1a73e8; font-size: 0.82rem; padding: 7px 14px; }
     .btn-save    { background: #34c759; color: #fff; }
+    .btn-new-tab { background: #f2f2f7; color: #1d1d1f; width: 100%; margin-bottom: 16px; }
 
-    /* Feed sections */
-    .feed-section {
-      background: #fff; border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      margin-bottom: 16px; padding: 16px 18px;
+    .feed-section { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px; padding: 16px 18px; }
+    .feed-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .feed-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; cursor: pointer; border: 2px solid transparent; }
+    .feed-dot:hover { border-color: #1d1d1f; }
+    .feed-label-input {
+      font-weight: 700; font-size: 0.95rem; flex: 1;
+      border: none; outline: none; background: transparent;
+      border-bottom: 1px dashed transparent;
     }
-    .feed-header {
-      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
-    }
-    .feed-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-    .feed-label { font-weight: 700; font-size: 0.95rem; flex: 1; }
+    .feed-label-input:focus { border-bottom-color: #1a73e8; }
 
     .keywords { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-    .kw-tag {
-      display: flex; align-items: center; gap: 6px;
-      background: #f2f2f7; border-radius: 20px;
-      padding: 5px 12px; font-size: 0.83rem;
-    }
-    .kw-remove {
-      background: none; border: none; cursor: pointer;
-      color: #aeaeb2; font-size: 0.9rem; line-height: 1;
-      padding: 0; transition: color 0.15s;
-    }
+    .kw-tag { display: flex; align-items: center; gap: 6px; background: #f2f2f7; border-radius: 20px; padding: 5px 12px; font-size: 0.83rem; }
+    .kw-remove { background: none; border: none; cursor: pointer; color: #aeaeb2; font-size: 0.9rem; line-height: 1; padding: 0; transition: color 0.15s; }
     .kw-remove:hover { color: #ff3b30; }
 
     .add-row { display: flex; gap: 8px; }
-    .add-row input {
-      flex: 1; padding: 7px 12px; border: 1px solid #d1d1d6;
-      border-radius: 8px; font-size: 0.88rem; outline: none;
-    }
+    .add-row input { flex: 1; padding: 7px 12px; border: 1px solid #d1d1d6; border-radius: 8px; font-size: 0.88rem; outline: none; }
     .add-row input:focus { border-color: #1a73e8; }
 
-    .save-bar {
-      position: sticky; bottom: 0; background: #f5f5f7;
-      padding: 16px 0 8px; display: flex; align-items: center; gap: 12px;
-    }
+    /* New tab form */
+    .new-tab-form { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 16px; padding: 16px 18px; display: none; }
+    .new-tab-form.open { display: block; }
+    .new-tab-form h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; }
+    .form-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+    .form-row label { font-size: 0.82rem; color: #6e6e73; width: 60px; flex-shrink: 0; }
+    .form-row input[type=text] { flex: 1; padding: 7px 12px; border: 1px solid #d1d1d6; border-radius: 8px; font-size: 0.88rem; outline: none; }
+    .form-row input[type=text]:focus { border-color: #1a73e8; }
+    .form-row input[type=color] { width: 40px; height: 34px; padding: 2px; border: 1px solid #d1d1d6; border-radius: 8px; cursor: pointer; }
+    .form-actions { display: flex; gap: 8px; }
+
+    .save-bar { position: sticky; bottom: 0; background: #f5f5f7; padding: 16px 0 8px; display: flex; align-items: center; gap: 12px; }
     .status { font-size: 0.83rem; color: #34c759; font-weight: 600; }
     .status.err { color: #ff3b30; }
 
@@ -91,6 +77,30 @@
 
   <div id="admin">
     <div id="feeds-container"></div>
+
+    <!-- 新增分類表單 -->
+    <div class="new-tab-form" id="new-tab-form">
+      <h3>新增分類</h3>
+      <div class="form-row">
+        <label>名稱</label>
+        <input type="text" id="new-label" placeholder="例：電動摩托車">
+      </div>
+      <div class="form-row">
+        <label>顏色</label>
+        <input type="color" id="new-color" value="#6366f1">
+      </div>
+      <div class="form-row">
+        <label>關鍵字</label>
+        <input type="text" id="new-query" placeholder="例：电动摩托车 OR 电摩">
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="addTab()">新增</button>
+        <button class="btn" style="background:#f2f2f7" onclick="toggleNewTabForm()">取消</button>
+      </div>
+    </div>
+
+    <button class="btn btn-new-tab" onclick="toggleNewTabForm()">＋ 新增分類</button>
+
     <div class="save-bar">
       <button class="btn btn-save btn-primary" onclick="saveConfig()">儲存所有變更</button>
       <span class="status" id="save-status"></span>
@@ -109,13 +119,8 @@
 
   async function doLogin() {
     password = document.getElementById('pw-input').value;
-    const res = await fetch(`${WORKER}/config`, {
-      headers: { 'X-Admin-Password': password }
-    });
-    if (res.status === 401) {
-      document.getElementById('login-err').textContent = '密碼錯誤';
-      return;
-    }
+    const res = await fetch(`${WORKER}/config`, { headers: { 'X-Admin-Password': password } });
+    if (res.status === 401) { document.getElementById('login-err').textContent = '密碼錯誤'; return; }
     feeds = await res.json();
     document.getElementById('login').style.display = 'none';
     document.getElementById('admin').style.display = 'block';
@@ -127,28 +132,30 @@
     container.innerHTML = '';
     for (const [key, cfg] of Object.entries(feeds)) {
       const keywords = cfg.query.split(/\s+OR\s+/).map(k => k.trim()).filter(Boolean);
-      container.innerHTML += `
-        <div class="feed-section" id="section-${key}">
-          <div class="feed-header">
-            <div class="feed-dot" style="background:${cfg.color}"></div>
-            <span class="feed-label">${cfg.label}</span>
-          </div>
-          <div class="keywords" id="kw-${key}">
-            ${keywords.map(kw => kwTag(key, kw)).join('')}
-          </div>
-          <div class="add-row">
-            <input type="text" id="add-input-${key}" placeholder="新增關鍵字…">
-            <button class="btn btn-add" onclick="addKeyword('${key}')">新增</button>
-          </div>
+      const section = document.createElement('div');
+      section.className = 'feed-section';
+      section.id = `section-${key}`;
+      section.innerHTML = `
+        <div class="feed-header">
+          <input type="color" class="feed-dot" style="background:${cfg.color}" value="${cfg.color}"
+            oninput="updateColor('${key}', this.value)" title="點擊更改顏色">
+          <input class="feed-label-input" type="text" value="${cfg.label}"
+            oninput="updateLabel('${key}', this.value)">
+          <button class="btn btn-danger" onclick="deleteTab('${key}')">刪除分類</button>
+        </div>
+        <div class="keywords" id="kw-${key}">
+          ${keywords.map(kw => kwTag(key, kw)).join('')}
+        </div>
+        <div class="add-row">
+          <input type="text" id="add-input-${key}" placeholder="新增關鍵字…">
+          <button class="btn btn-add" onclick="addKeyword('${key}')">新增</button>
         </div>`;
-    }
+      container.appendChild(section);
 
-    // Enter key on add inputs
-    document.querySelectorAll('[id^="add-input-"]').forEach(el => {
-      el.addEventListener('keydown', e => {
-        if (e.key === 'Enter') addKeyword(el.id.replace('add-input-', ''));
+      section.querySelector(`#add-input-${key}`).addEventListener('keydown', e => {
+        if (e.key === 'Enter') addKeyword(key);
       });
-    });
+    }
   }
 
   function kwTag(feedKey, kw) {
@@ -160,13 +167,21 @@
     return feeds[feedKey].query.split(/\s+OR\s+/).map(k => k.trim()).filter(Boolean);
   }
 
-  function setKeywords(feedKey, kws) {
-    feeds[feedKey].query = kws.join(' OR ');
+  function updateLabel(feedKey, val) { feeds[feedKey].label = val; }
+  function updateColor(feedKey, val) {
+    feeds[feedKey].color = val;
+    document.querySelector(`#section-${feedKey} .feed-dot`).style.background = val;
+  }
+
+  function deleteTab(feedKey) {
+    if (!confirm(`確定刪除「${feeds[feedKey].label}」分類？`)) return;
+    delete feeds[feedKey];
+    renderFeeds();
   }
 
   function removeKeyword(feedKey, kw) {
     const kws = getKeywords(feedKey).filter(k => k !== kw);
-    setKeywords(feedKey, kws);
+    feeds[feedKey].query = kws.join(' OR ');
     document.getElementById(`kw-${feedKey}`).innerHTML = kws.map(k => kwTag(feedKey, k)).join('');
   }
 
@@ -177,9 +192,27 @@
     const kws = getKeywords(feedKey);
     if (kws.includes(kw)) { input.value = ''; return; }
     kws.push(kw);
-    setKeywords(feedKey, kws);
+    feeds[feedKey].query = kws.join(' OR ');
     document.getElementById(`kw-${feedKey}`).innerHTML = kws.map(k => kwTag(feedKey, k)).join('');
     input.value = '';
+  }
+
+  function toggleNewTabForm() {
+    const form = document.getElementById('new-tab-form');
+    form.classList.toggle('open');
+  }
+
+  function addTab() {
+    const label = document.getElementById('new-label').value.trim();
+    const color = document.getElementById('new-color').value;
+    const query = document.getElementById('new-query').value.trim();
+    if (!label || !query) { alert('名稱和關鍵字不能為空'); return; }
+    const key = 'tab_' + Date.now();
+    feeds[key] = { label, color, query };
+    document.getElementById('new-label').value = '';
+    document.getElementById('new-query').value = '';
+    document.getElementById('new-tab-form').classList.remove('open');
+    renderFeeds();
   }
 
   async function saveConfig() {
