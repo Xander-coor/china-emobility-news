@@ -76,6 +76,11 @@
   </div>
 
   <div id="admin">
+    <div id="credits-bar" style="background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:0.82rem;color:#6e6e73;">Serper 剩餘用量</span>
+      <span id="credits-value" style="font-size:1.2rem;font-weight:700;">—</span>
+      <span style="font-size:0.75rem;color:#aeaeb2;">次</span>
+    </div>
     <div id="feeds-container"></div>
 
     <!-- 新增分類表單 -->
@@ -125,6 +130,7 @@
     document.getElementById('login').style.display = 'none';
     document.getElementById('admin').style.display = 'block';
     renderFeeds();
+    loadCredits();
   }
 
   function renderFeeds() {
@@ -213,6 +219,22 @@
     document.getElementById('new-query').value = '';
     document.getElementById('new-tab-form').classList.remove('open');
     renderFeeds();
+  }
+
+  async function loadCredits() {
+    try {
+      const res = await fetch(`${WORKER}/credits`, { headers: { 'X-Admin-Password': password } });
+      const data = await res.json();
+      const el = document.getElementById('credits-value');
+      if (data.balance != null) {
+        el.textContent = data.balance.toLocaleString();
+        el.style.color = data.balance < 500 ? '#ff3b30' : data.balance < 1000 ? '#f59e0b' : '#34c759';
+      } else {
+        el.textContent = '無法取得';
+      }
+    } catch {
+      document.getElementById('credits-value').textContent = '無法取得';
+    }
   }
 
   async function saveConfig() {

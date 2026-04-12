@@ -37,6 +37,21 @@ export default {
       }
     }
 
+    // ── GET /credits ───────────────────────────────────────────────
+    if (pathname === '/credits') {
+      const pw = request.headers.get('X-Admin-Password');
+      if (pw !== env.ADMIN_PASSWORD) return json({ error: 'Unauthorized' }, 401);
+      try {
+        const res = await fetch('https://google.serper.dev/account', {
+          headers: { 'X-API-KEY': env.SERPER_KEY },
+        });
+        const data = await res.json();
+        return json({ balance: data.balance ?? null });
+      } catch (err) {
+        return json({ error: err.message }, 500);
+      }
+    }
+
     // ── GET /config ────────────────────────────────────────────────
     if (pathname === '/config' && request.method === 'GET') {
       const stored = await env.NEWS_CACHE?.get('config:feeds', 'json');
