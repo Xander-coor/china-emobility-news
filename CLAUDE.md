@@ -3,7 +3,7 @@
 ## 專案概述
 中國電動微出行新聞聚合器。用 Serper News API 搜尋新聞，按分類顯示文章標題與摘要。
 - **前端**：`index.html`（GitHub Pages：github.com/Xander-coor/china-emobility-news）
-- **Worker**：`/Users/jorgelo/Desktop/China Mobility Worker/src/index.js`（Cloudflare Workers：emobility-fetcher-production.pichia47.workers.dev）
+- **Worker**：`src/index.js`（Cloudflare Workers：emobility-fetcher-production.pichia47.workers.dev，用 `npx wrangler deploy --env production` 部署）
 
 ## 目前狀態（2026-04-12）
 **Serper News API 架構**——每張卡片顯示標題 + Google 從文章內文抽出的 2-3 句真實摘要。
@@ -23,9 +23,9 @@
 - `renderCards(articles, feedKey)` — 渲染卡片，顯示標題 + snippet
 
 ### Worker (index.js) 重要端點
-- `GET /news?q=...&num=...` — 呼叫 Serper API，回傳 `{title, snippet, url, source, date}[]`
-- `POST /batch`（legacy）— 批量解析 Google News URL，現已不被前端呼叫
-- `GET /`（legacy）— 單篇文章解析，現已不被前端呼叫
+- `GET /news?q=...&num=...` — 呼叫 Serper API，回傳 `{title, snippet, url, source, date}[]`，結果快取 4 小時
+- `GET /config` — 讀取 KV 中的分類設定，無設定時回傳預設值
+- `POST /config` — 寫入新分類設定到 KV，需帶 `X-Admin-Password` header，同時清除相關新聞快取
 
 ### 分類與搜尋關鍵字（FEEDS）
 
