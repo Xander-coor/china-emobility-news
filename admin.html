@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>微出行情報站 · 管理</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", sans-serif;
+      background: #f5f5f7;
+      color: #1d1d1f;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+    .wrap { max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 24px; }
+
+    /* Login */
+    #login { display: flex; flex-direction: column; gap: 12px; max-width: 320px; }
+    #login input {
+      padding: 10px 14px; border: 1px solid #d1d1d6; border-radius: 8px;
+      font-size: 1rem; outline: none;
+    }
+    #login input:focus { border-color: #1a73e8; }
+
+    /* Buttons */
+    .btn {
+      padding: 9px 18px; border: none; border-radius: 8px;
+      font-size: 0.88rem; font-weight: 600; cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #1a73e8; color: #fff; }
+    .btn-danger  { background: #ff3b30; color: #fff; font-size: 0.78rem; padding: 6px 12px; }
+    .btn-add     { background: #e8f0fe; color: #1a73e8; font-size: 0.82rem; padding: 7px 14px; }
+    .btn-save    { background: #34c759; color: #fff; }
+
+    /* Feed sections */
+    .feed-section {
+      background: #fff; border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      margin-bottom: 16px; padding: 16px 18px;
+    }
+    .feed-header {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    }
+    .feed-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    .feed-label { font-weight: 700; font-size: 0.95rem; flex: 1; }
+
+    .keywords { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .kw-tag {
+      display: flex; align-items: center; gap: 6px;
+      background: #f2f2f7; border-radius: 20px;
+      padding: 5px 12px; font-size: 0.83rem;
+    }
+    .kw-remove {
+      background: none; border: none; cursor: pointer;
+      color: #aeaeb2; font-size: 0.9rem; line-height: 1;
+      padding: 0; transition: color 0.15s;
+    }
+    .kw-remove:hover { color: #ff3b30; }
+
+    .add-row { display: flex; gap: 8px; }
+    .add-row input {
+      flex: 1; padding: 7px 12px; border: 1px solid #d1d1d6;
+      border-radius: 8px; font-size: 0.88rem; outline: none;
+    }
+    .add-row input:focus { border-color: #1a73e8; }
+
+    .save-bar {
+      position: sticky; bottom: 0; background: #f5f5f7;
+      padding: 16px 0 8px; display: flex; align-items: center; gap: 12px;
+    }
+    .status { font-size: 0.83rem; color: #34c759; font-weight: 600; }
+    .status.err { color: #ff3b30; }
+
+    #admin { display: none; }
+    .err-msg { color: #ff3b30; font-size: 0.83rem; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>微出行情報站 · 管理</h1>
+
+  <div id="login">
+    <input type="password" id="pw-input" placeholder="管理密碼" autocomplete="current-password">
+    <button class="btn btn-primary" onclick="doLogin()">登入</button>
+    <span class="err-msg" id="login-err"></span>
+  </div>
+
+  <div id="admin">
+    <div id="feeds-container"></div>
+    <div class="save-bar">
+      <button class="btn btn-save btn-primary" onclick="saveConfig()">儲存所有變更</button>
+      <span class="status" id="save-status"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const WORKER = 'https://emobility-fetcher-production.pichia47.workers.dev';
+  let password = '';
+  let feeds = {};
+
+  document.getElementById('pw-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  async function doLogin() {
+    password = document.getElementById('pw-input').value;
+    const res = await fetch(`${WORKER}/config`, {
+      headers: { 'X-Admin-Password': password }
+    });
+    if (res.status === 401) {
+      document.getElementById('login-err').textContent = '密碼錯誤';
+      return;
+    }
+    feeds = await res.json();
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('admin').style.display = 'block';
+    renderFeeds();
+  }
+
+  function renderFeeds() {
+    const container = document.getElementById('feeds-container');
+    container.innerHTML = '';
+    for (const [key, cfg] of Object.entries(feeds)) {
+      const keywords = cfg.query.split(/\s+OR\s+/).map(k => k.trim()).filter(Boolean);
+      container.innerHTML += `
+        <div class="feed-section" id="section-${key}">
+          <div class="feed-header">
+            <div class="feed-dot" style="background:${cfg.color}"></div>
+            <span class="feed-label">${cfg.label}</span>
+          </div>
+          <div class="keywords" id="kw-${key}">
+            ${keywords.map(kw => kwTag(key, kw)).join('')}
+          </div>
+          <div class="add-row">
+            <input type="text" id="add-input-${key}" placeholder="新增關鍵字…">
+            <button class="btn btn-add" onclick="addKeyword('${key}')">新增</button>
+          </div>
+        </div>`;
+    }
+
+    // Enter key on add inputs
+    document.querySelectorAll('[id^="add-input-"]').forEach(el => {
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter') addKeyword(el.id.replace('add-input-', ''));
+      });
+    });
+  }
+
+  function kwTag(feedKey, kw) {
+    const safe = kw.replace(/'/g, '&#39;');
+    return `<span class="kw-tag">${safe}<button class="kw-remove" onclick="removeKeyword('${feedKey}','${safe}')">✕</button></span>`;
+  }
+
+  function getKeywords(feedKey) {
+    return feeds[feedKey].query.split(/\s+OR\s+/).map(k => k.trim()).filter(Boolean);
+  }
+
+  function setKeywords(feedKey, kws) {
+    feeds[feedKey].query = kws.join(' OR ');
+  }
+
+  function removeKeyword(feedKey, kw) {
+    const kws = getKeywords(feedKey).filter(k => k !== kw);
+    setKeywords(feedKey, kws);
+    document.getElementById(`kw-${feedKey}`).innerHTML = kws.map(k => kwTag(feedKey, k)).join('');
+  }
+
+  function addKeyword(feedKey) {
+    const input = document.getElementById(`add-input-${feedKey}`);
+    const kw = input.value.trim();
+    if (!kw) return;
+    const kws = getKeywords(feedKey);
+    if (kws.includes(kw)) { input.value = ''; return; }
+    kws.push(kw);
+    setKeywords(feedKey, kws);
+    document.getElementById(`kw-${feedKey}`).innerHTML = kws.map(k => kwTag(feedKey, k)).join('');
+    input.value = '';
+  }
+
+  async function saveConfig() {
+    const statusEl = document.getElementById('save-status');
+    statusEl.textContent = '儲存中…';
+    statusEl.className = 'status';
+    try {
+      const res = await fetch(`${WORKER}/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': password },
+        body: JSON.stringify(feeds),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        statusEl.textContent = '✓ 已儲存，快取已清除';
+      } else {
+        throw new Error(data.error || 'Failed');
+      }
+    } catch (err) {
+      statusEl.textContent = '✗ 儲存失敗：' + err.message;
+      statusEl.className = 'status err';
+    }
+  }
+</script>
+</body>
+</html>
