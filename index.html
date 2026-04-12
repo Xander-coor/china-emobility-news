@@ -71,6 +71,18 @@
       padding: 24px 16px 48px;
     }
 
+    /* ── Time filter ── */
+    .time-filter {
+      display: flex; gap: 6px; margin-bottom: 14px;
+    }
+    .tf-btn {
+      font-size: 0.75rem; font-weight: 600; padding: 5px 12px;
+      border: 1.5px solid #d1d1d6; border-radius: 20px;
+      background: none; cursor: pointer; color: #6e6e73;
+      transition: all 0.15s;
+    }
+    .tf-btn.active { background: #1d1d1f; color: #fff; border-color: #1d1d1f; }
+
     /* ── Count label ── */
     .count-label {
       font-size: 0.68rem;
@@ -262,6 +274,47 @@
       </div>`).join('');
   }
 
+  // ── 時間解析 ──────────────────────────────────────────────────
+  function parseRelativeDate(str) {
+    if (!str) return null;
+    const now = Date.now();
+    const s = str.trim();
+
+    // 已是標準日期
+    const d = new Date(s);
+    if (!isNaN(d)) return d;
+
+    // 中文相對格式
+    const zhMatch = s.match(/(\d+)\s*(分鐘|小時|天|週|周|月)/);
+    if (zhMatch) {
+      const n = parseInt(zhMatch[1]);
+      const unit = zhMatch[2];
+      const ms = { '分鐘': 60000, '小時': 3600000, '天': 86400000, '週': 604800000, '周': 604800000, '月': 2592000000 }[unit] || 0;
+      return new Date(now - n * ms);
+    }
+
+    // 英文相對格式
+    const enMatch = s.match(/(\d+)\s*(minute|hour|day|week|month)/i);
+    if (enMatch) {
+      const n = parseInt(enMatch[1]);
+      const unit = enMatch[2].toLowerCase();
+      const ms = { minute: 60000, hour: 3600000, day: 86400000, week: 604800000, month: 2592000000 }[unit] || 0;
+      return new Date(now - n * ms);
+    }
+
+    return null;
+  }
+
+  function filterByTime(articles, range) {
+    if (range === 'all') return articles;
+    const now = Date.now();
+    const cutoff = range === 'today' ? now - 86400000 : now - 604800000;
+    return articles.filter(a => {
+      const d = parseRelativeDate(a.date);
+      return d && d.getTime() >= cutoff;
+    });
+  }
+
   // ── 去重 ──────────────────────────────────────────────────────
   function titleBigrams(title) {
     const chars = title.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || [];
@@ -310,11 +363,43 @@
   }
 
   // ── Serper 載入 ───────────────────────────────────────────────
+  const feedArticles = {}; // 快取每個分類的完整文章列表
+  const feedTimeFilter = {}; // 每個分類目前的時間篩選狀態
+
+  function applyFilter(feedKey) {
+    const range = feedTimeFilter[feedKey] || 'all';
+    const all   = feedArticles[feedKey] || [];
+    const filtered = filterByTime(all, range);
+    const countEl  = document.getElementById(`count-${feedKey}`);
+    const cards    = document.getElementById(`cards-${feedKey}`);
+    if (countEl) countEl.textContent = `共 ${filtered.length} 篇`;
+    cards.innerHTML = filtered.length
+      ? renderCards(filtered, feedKey)
+      : '<p style="text-align:center;padding:48px;color:#aeaeb2">此時間範圍內沒有文章</p>';
+
+    // 更新按鈕狀態
+    document.querySelectorAll(`#panel-${feedKey} .tf-btn`).forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.range === range);
+    });
+  }
+
   async function loadFeed(feedKey) {
     const cfg     = FEEDS[feedKey];
     const cards   = document.getElementById(`cards-${feedKey}`);
     const countEl = document.getElementById(`count-${feedKey}`);
     if (!cards) return;
+
+    // 加入時間篩選按鈕
+    const panel = document.getElementById(`panel-${feedKey}`);
+    if (panel && !panel.querySelector('.time-filter')) {
+      const tf = document.createElement('div');
+      tf.className = 'time-filter';
+      tf.innerHTML = `
+        <button class="tf-btn active" data-range="all"  onclick="setFilter('${feedKey}','all')">全部</button>
+        <button class="tf-btn"        data-range="today" onclick="setFilter('${feedKey}','today')">今天</button>
+        <button class="tf-btn"        data-range="week"  onclick="setFilter('${feedKey}','week')">本週</button>`;
+      panel.querySelector('main').insertBefore(tf, panel.querySelector('.count-label'));
+    }
 
     cards.innerHTML = skeletons();
 
@@ -327,20 +412,23 @@
       const items = await res.json();
       if (items.error) throw new Error(items.error);
 
-      const articles = dedupe(
+      feedArticles[feedKey] = dedupe(
         items
           .filter(a => !isBlacklisted(a.source))
           .sort((a, b) => getSourceTier(a.source) - getSourceTier(b.source))
       );
-
-      if (countEl) countEl.textContent = `共 ${articles.length} 篇`;
-      cards.innerHTML = renderCards(articles, feedKey);
+      feedTimeFilter[feedKey] = feedTimeFilter[feedKey] || 'all';
+      applyFilter(feedKey);
 
     } catch (err) {
       cards.innerHTML = `<div class="error-box">⚠️ 載入失敗：${err.message}</div>`;
       if (countEl) countEl.textContent = '';
-      console.error('loadFeed error:', feedKey, err);
     }
+  }
+
+  function setFilter(feedKey, range) {
+    feedTimeFilter[feedKey] = range;
+    applyFilter(feedKey);
   }
 
 
