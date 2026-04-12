@@ -331,7 +331,7 @@
     if (!articles.length) return '<p style="text-align:center;padding:48px;color:#aeaeb2">沒有找到文章</p>';
     const cfg = FEEDS[feedKey];
     return articles.map((a, i) => `
-      <a class="card" href="${a.url}" target="_blank" rel="noopener" data-idx="${i}" data-feed="${feedKey}">
+      <a class="card" href="${a.url}" target="_blank" rel="noopener">
         <div class="card-header" style="background:${cfg.color}">
           <span class="card-source">${a.source || cfg.label}</span>
           <span class="card-tier">T${getSourceTier(a.source)}</span>
