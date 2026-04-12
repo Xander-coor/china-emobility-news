@@ -30,6 +30,15 @@
 ### RSS 分類（FEEDS）
 品牌動態 / 行業＆政策 / 充電設施 / 配送機器人 / 共享出行
 
+## 外部服務
+
+| 服務 | 用途 | 管理網址 |
+|------|------|---------|
+| GitHub Pages | 前端靜態網站託管 | github.com/Xander-coor/china-emobility-news |
+| Cloudflare Workers | 後端 API，隱藏 Serper key、處理 CORS | dash.cloudflare.com |
+| Cloudflare KV | 快取搜尋結果（4小時 TTL），減少 Serper 用量 | dash.cloudflare.com → Storage & databases → KV |
+| Serper.dev | Google 搜尋 API 代理，取得新聞標題與摘要 | serper.dev |
+
 ## API Keys
 - **Serper API Key**：`9ce18c03aabe54e3cdc1292dd0ca987fd6daa4df`（Worker env var：`SERPER_KEY`）
 - **Serper 用量**：免費 2,500 次（一次性，不 renew）；每次完整載入用 5 次
