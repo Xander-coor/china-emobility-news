@@ -53,6 +53,17 @@
 - **T4**：新浪財經、東方財富、上海觀察、京報網、鳳凰科技
 - **T5**：搜狐、中華網、DoNews 等
 
+## 資料流角色說明
+
+### Google 的角色
+Google 爬蟲持續抓取中文新聞網站內容並建立索引。當用戶搜尋時，Google 會從索引中回傳文章標題與從內文抽出的 2-3 句摘要片段。本專案的摘要內容來源就是 Google 已整理好的搜尋結果，不是直接爬中國網站。
+
+### Serper 的角色
+Serper 是 Google 搜尋的 API 代理。Google 本身沒有公開搜尋 API，Serper 靠維護自己的爬蟲基礎設施與 IP 輪換去查 Google，將結果以乾淨的 JSON 格式回傳。付費買的是「不被 Google 封鎖」的能力。
+
+### 為何不需要翻牆
+瀏覽器只連 GitHub Pages + Cloudflare Worker，Worker 呼叫 Serper，Serper 查 Google。整條鏈路沒有直接連中國網站。點文章連結後的全文頁面（新浪、財聯社等）在台灣/香港通常可直接開，在其他地區不一定。
+
 ## 注意事項
 - Google News RSS 本質上只提供標題，description 欄位為空，不要嘗試用它取得摘要
 - Serper 回傳的 date 欄位是「2 天前」這種相對格式，直接顯示即可
