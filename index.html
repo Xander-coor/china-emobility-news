@@ -296,6 +296,7 @@
         </div>
         <div class="card-body">
           <div class="card-title">${a.title}</div>
+          ${a.description ? `<div class="card-desc">${a.description}</div>` : ''}
         </div>
       </a>`).join('');
   }
@@ -320,11 +321,52 @@
       if (countEl) countEl.textContent = `共 ${articles.length} 篇`;
       cards.innerHTML = renderCards(articles, feedKey);
 
+      // 批量獲取摘要 (Google News URLs)
+      const gnewsArticles = articles.filter(a => a.url.includes('news.google.com'));
+      if (gnewsArticles.length > 0) {
+        fetchSnippets(gnewsArticles, feedKey);
+      }
 
     } catch (err) {
       cards.innerHTML = `<div class="error-box">⚠️ 載入失敗：${err.message}</div>`;
       if (countEl) countEl.textContent = '';
       console.error('loadFeed error:', feedKey, err);
+    }
+  }
+
+  async function fetchSnippets(articles, feedKey) {
+    try {
+      const res = await fetch('https://emobility-fetcher.pichia47.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(articles.map(a => ({ url: a.url, title: a.title, source: a.source }))),
+        signal: AbortSignal.timeout(30000),
+      });
+      const results = await res.json();
+
+      // 更新卡片 descriptions
+      results.forEach((result, idx) => {
+        if (result?.snippet) {
+          const article = articles[idx];
+          const cardIdx = article.feedKey === feedKey ? articles.indexOf(article) : null;
+          if (cardIdx !== null) {
+            const descEl = document.querySelector(`[data-feed="${feedKey}"][data-idx="${cardIdx}"] .card-desc`);
+            if (!descEl) {
+              const card = document.querySelector(`[data-feed="${feedKey}"][data-idx="${cardIdx}"] .card-body`);
+              if (card) {
+                const newDesc = document.createElement('div');
+                newDesc.className = 'card-desc';
+                newDesc.textContent = result.snippet;
+                card.appendChild(newDesc);
+              }
+            } else {
+              descEl.textContent = result.snippet;
+            }
+          }
+        }
+      });
+    } catch (err) {
+      console.warn('fetchSnippets error:', err.message);
     }
   }
 
