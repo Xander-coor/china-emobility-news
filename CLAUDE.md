@@ -2,8 +2,18 @@
 
 ## 專案概述
 中國電動微出行新聞聚合器。用 Serper News API 搜尋新聞，按分類顯示文章標題與摘要。
-- **前端**：`index.html`（GitHub Pages：github.com/Xander-coor/china-emobility-news）
-- **Worker**：`src/index.js`（Cloudflare Workers：emobility-fetcher-production.pichia47.workers.dev，用 `npx wrangler deploy --env production` 部署）
+- **前端**：`index.html`、`admin.html`（GitHub Pages：github.com/Xander-coor/china-emobility-news）
+- **Worker**：`worker/src/index.js`（Cloudflare Workers：emobility-fetcher-production.pichia47.workers.dev）
+
+## 換電腦
+```bash
+git clone https://github.com/Xander-coor/china-emobility-news.git
+```
+部署 Worker：
+```bash
+cd worker
+npx wrangler deploy --env production
+```
 
 ## 目前狀態（2026-04-12）
 **Serper News API 架構**——每張卡片顯示標題 + Google 從文章內文抽出的 2-3 句真實摘要。
