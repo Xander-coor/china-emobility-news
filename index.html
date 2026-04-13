@@ -246,9 +246,10 @@
     'Fortune Business Insights': 2,
     '经济观察网': 2, '經濟觀察網': 2, 'eeo.com.cn': 2,
     '21财经': 2, '21財經': 2, '21世纪经济报道': 2,
+    '新华报业网': 2,
     // 第三梯隊
     '汽车之家': 3, '汽車之家': 3,
-    '财联社': 3, '財聯社': 3,
+    '财联社': 3, '財聯社': 3, '财联社电报': 3,
     '澎湃新闻': 3, '澎湃新聞': 3, 'thepaper.cn': 3,
     '每日经济新闻': 3, '每日經濟新聞': 3,
     '国际充电网': 3, '國際充電網': 3,
@@ -401,7 +402,7 @@
          onclick="markRead('${safeUrl}')">
         <div class="card-header" style="background:${cfg.color}">
           <span class="card-source">${a.source || cfg.label}</span>
-          <span class="card-tier">T${getSourceTier(a.source)}</span>
+          ${getSourceTier(a.source) <= 5 ? `<span class="card-tier">T${getSourceTier(a.source)}</span>` : ''}
           <span class="card-date">${formatDate(a.date)}</span>
           <button class="star-btn ${isStarred(a.url) ? 'starred' : ''}" data-url="${a.url}"
             onclick="toggleStar(event, ${articleJson.replace(/"/g, '&quot;')})">${isStarred(a.url) ? '★' : '☆'}</button>
