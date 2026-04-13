@@ -369,17 +369,24 @@
     return common / Math.min(sa.size, sb.size);
   }
 
+  // 跨 tab 去重：記錄本次 session 已顯示的文章標題
+  const seenTitles = new Set();
+
   function dedupe(articles) {
     const kept = [];
     for (const article of articles) {
+      // 先檢查是否與其他 tab 已顯示的重複
+      const alreadySeen = [...seenTitles].some(t => similarity(t, article.title) >= 0.6);
+      if (alreadySeen) continue;
+      // 再檢查本 tab 內是否重複
       const dup = kept.find(k => similarity(k.title, article.title) >= 0.6);
       if (!dup) {
         kept.push(article);
       } else if (getSourceTier(article.source) < getSourceTier(dup.source)) {
-        // 新文章梯隊更高，替換
         kept.splice(kept.indexOf(dup), 1, article);
       }
     }
+    kept.forEach(a => seenTitles.add(a.title));
     return kept;
   }
 
