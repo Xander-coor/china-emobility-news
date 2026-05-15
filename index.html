@@ -372,8 +372,15 @@
 
   // 跨 tab 去重：記錄本次 session 已顯示的文章標題
   const seenTitles = new Set();
+  const feedSeenTitles = {};
 
-  function dedupe(articles) {
+  function dedupe(articles, feedKey) {
+    // 重新載入同一 feed 時，先移除該 feed 上次加入的 titles
+    if (feedKey && feedSeenTitles[feedKey]) {
+      feedSeenTitles[feedKey].forEach(t => seenTitles.delete(t));
+    }
+    if (feedKey) feedSeenTitles[feedKey] = new Set();
+
     const kept = [];
     for (const article of articles) {
       // 先檢查是否與其他 tab 已顯示的重複
@@ -387,7 +394,10 @@
         kept.splice(kept.indexOf(dup), 1, article);
       }
     }
-    kept.forEach(a => seenTitles.add(a.title));
+    kept.forEach(a => {
+      seenTitles.add(a.title);
+      if (feedKey) feedSeenTitles[feedKey].add(a.title);
+    });
     return kept;
   }
 
@@ -514,7 +524,8 @@
       const articles = dedupe(
         items
           .filter(a => !isBlacklisted(a.source))
-          .sort((a, b) => getSourceTier(a.source) - getSourceTier(b.source))
+          .sort((a, b) => getSourceTier(a.source) - getSourceTier(b.source)),
+        feedKey
       );
 
       if (countEl) countEl.textContent = `共 ${articles.length} 篇`;
